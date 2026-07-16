@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>NacorGym Ultimate</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#09090b">
+  
+  <!-- Tailwind CSS & Plus Jakarta Sans Font -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: { brand: '#a3e635', darkBg: '#09090b', darkCard: '#18181b' }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      background-color: #09090b;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      overscroll-behavior-y: contain;
+    }
+    .dark body { background-color: #09090b; }
+    .light body { background-color: #f4f4f5; }
+    
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .scrollable-content {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  </style>
+</head>
+<body class="text-zinc-100 dark:text-zinc-100 light:text-zinc-900 font-sans min-h-screen flex flex-col justify-between overflow-x-hidden pb-20 transition-colors duration-200">
+
+  <!-- HEADER -->
+  <header class="border-b border-zinc-900 dark:border-zinc-900 light:border-zinc-200 bg-zinc-950/95 dark:bg-zinc-950/95 light:bg-white/95 backdrop-blur-md sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-3.5 h-7 bg-brand rounded-full shadow-[0_0_15px_rgba(163,230,53,0.5)]"></div>
+      <h1 class="text-xl font-extrabold tracking-tight dark:text-white light:text-zinc-950">Nacor<span class="text-brand">Gym</span><span class="text-[8px] bg-brand/20 text-brand px-1.5 py-0.5 rounded ml-1.5 font-bold uppercase">Ultimate</span></h1>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <button onclick="toggleTheme()" class="p-2 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-100 rounded-xl text-xs active:scale-95 transition-transform">🌓</button>
+      <button onclick="openPlateCalculator()" class="p-2 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-100 rounded-xl text-xs active:scale-95 transition-transform">🏋️‍♂️</button>
+    </div>
+  </header>
+
+  <!-- POPUP TEMPORIZADOR DE DESCANSO -->
+  <div id="timer-banner" class="hidden fixed top-20 left-1/2 -translate-x-1/2 bg-zinc-950/95 dark:bg-zinc-950/95 light:bg-white border border-brand/40 px-5 py-3 rounded-2xl z-50 shadow-2xl flex flex-col items-center gap-2 backdrop-blur-lg w-72">
+    <div class="flex items-center justify-between w-full">
+      <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Tiempo de Descanso</span>
+      <span id="timer-display" class="text-brand font-mono font-extrabold text-lg">01:30</span>
+    </div>
+    <div class="flex gap-1.5 w-full">
+      <button onclick="adjustTimer(-30)" class="flex-1 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-100 border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 rounded-lg text-xs font-semibold">-30s</button>
+      <button onclick="adjustTimer(30)" class="flex-1 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-100 border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 rounded-lg text-xs font-semibold">+30s</button>
+      <button onclick="stopTimer()" class="flex-1 py-1 bg-red-900/30 text-red-500 border border-red-900/40 rounded-lg text-xs font-bold">Saltar</button>
+    </div>
+    <div class="flex items-center gap-1.5 mt-1">
+      <input type="checkbox" id="sound-alert-toggle" checked class="accent-brand">
+      <label for="sound-alert-toggle" class="text-[9px] text-zinc-500 font-bold uppercase">Sonido al finalizar</label>
+    </div>
+  </div>
+
+  <!-- MODAL MULTIUSOS: CALCULADORA DE DISCOS -->
+  <div id="plate-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-zinc-950 dark:bg-zinc-950 light:bg-white border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 rounded-2xl p-5 w-full max-w-sm">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-sm text-zinc-200 dark:text-zinc-200 light:text-zinc-800">Calculadora de Discos (Barra 20kg)</h3>
+        <button onclick="closePlateCalculator()" class="text-zinc-500 text-xs font-bold">Cerrar</button>
+      </div>
+      <div class="mb-4">
+        <label class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-1">Peso Objetivo (Kg)</label>
+        <div class="flex gap-2">
+          <input type="number" id="calc-weight-input" placeholder="Ej: 80" class="bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-100 border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 rounded-xl px-3 py-2 w-full text-white dark:text-white light:text-zinc-900 font-bold focus:outline-none focus:border-brand">
+          <button onclick="calculatePlates()" class="bg-brand text-zinc-950 px-4 rounded-xl text-xs font-bold">Calcular</button>
+        </div>
+      </div>
+      <div id="plates-output" class="text-xs text-zinc-400 space-y-1"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: AGREGAR EJERCICIO (CON FILTRO EQUIPAMIENTO + MÚSCULO INDEPENDIENTE) -->
+  <div id="add-exercise-modal" class="hidden fixed inset-0 bg-zinc-950/98 dark:bg-zinc-950/98 light:bg-zinc-50/98 backdrop-blur-md z-50 flex flex-col p-4 pt-12">
+    <div class="max-w-lg mx-auto w-full flex-1 flex flex-col min-h-0">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-extrabold text-lg dark:text-zinc-100 light:text-zinc-900">Añadir Ejercicio</h3>
+        <button onclick="closeAddExerciseModal()" class="text-zinc-400 text-xs font-extrabold bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 border border-zinc-800 dark:border-zinc-800 light:border-zinc-300 px-3.5 py-2 rounded-xl">Hecho</button>
+      </div>
+      
+      <!-- FILTRO 1: EQUIPAMIENTO -->
+      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Filtrar por Equipo</span>
+      <div class="flex gap-1.5 overflow-x-auto pb-2 mb-2 no-scrollbar shrink-0">
+        <button onclick="filterEquip('Todos')" class="equip-filter-btn px-3 py-1 bg-brand text-zinc-950 text-[11px] font-bold rounded-lg shrink-0">Todos</button>
+        <button onclick="filterEquip('Mancuernas')" class="equip-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Mancuernas</button>
+        <button onclick="filterEquip('Máquinas')" class="equip-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Máquinas</button>
+        <button onclick="filterEquip('Poleas')" class="equip-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Poleas</button>
+        <button onclick="filterEquip('Otros')" class="equip-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Otros</button>
+      </div>
+
+      <!-- FILTRO 2: MÚSCULO -->
+      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 block">Filtrar por Músculo</span>
+      <div class="flex gap-1.5 overflow-x-auto pb-3 mb-3 no-scrollbar shrink-0">
+        <button onclick="filterMuscle('Todos')" class="muscle-filter-btn px-3 py-1 bg-brand text-zinc-950 text-[11px] font-bold rounded-lg shrink-0">Todos</button>
+        <button onclick="filterMuscle('Pecho')" class="muscle-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Pecho</button>
+        <button onclick="filterMuscle('Espalda')" class="muscle-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Espalda</button>
+        <button onclick="filterMuscle('Hombro')" class="muscle-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Hombro</button>
+        <button onclick="filterMuscle('Bíceps')" class="muscle-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Bíceps</button>
+        <button onclick="filterMuscle('Tríceps')" class="muscle-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Tríceps</button>
+        <button onclick="filterMuscle('Pierna')" class="muscle-filter-btn px-3 py-1 bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 text-zinc-400 text-[11px] font-bold rounded-lg shrink-0">Pierna</button>
+      </div>
+
+      <input type="text" id="modal-search-input" onkeyup="searchModalExercises()" placeholder="Escribe para buscar..." class="w-full bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-200 border border-zinc-800 dark:border-zinc-800 light:border-zinc-300 rounded-xl px-4 py-3 text-xs text-white dark:text-white light:text-zinc-900 mb-4 focus:outline-none shrink-0">
+
+      <!-- LISTA DE EJERCICIOS CON SCROLL CON SOLUCIÓN IOS -->
+      <div id="modal-exercises-list" class="flex-1 scrollable-modal-content space-y-2 pb-16">
+        <!-- Render dinámico -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main id="app-content" class="flex-1 px-4 py-5 pb-24 overflow-y-auto max-w-lg mx-auto w-full">
+    <!-- El contenido de las pestañas se monta dinámicamente aquí -->
+  </main>
+
+  <!-- NAV BAR PRINCIPAL (5 PESTAÑAS) -->
+  <nav class="fixed bottom-0 left-0 right-0 border-t border-zinc-900 dark:border-zinc-900 light:border-zinc-200 bg-zinc-950/95 dark:bg-zinc-950/95 light:bg-white/95 backdrop-blur-xl z-40 pb-5">
+    <div class="max-w-lg mx-auto flex justify-around py-3">
+      <button onclick="switchTab('entrenar')" id="nav-entrenar" class="flex flex-col items-center gap-1 text-brand transition-all active:scale-90">
+        <span class="text-lg">🏋️‍♂️</span>
+        <span class="text-[9px] font-bold">Entrenar</span>
+      </button>
+      
+      <button onclick="switchTab('ejercicios')" id="nav-ejercicios" class="flex flex-col items-center gap-1 text-zinc-500 transition-all active:scale-90">
+        <span class="text-lg">📖</span>
+        <span class="text-[9px] font-bold">Biblioteca</span>
+      </button>
+
+      <button onclick="switchTab('body')" id="nav-body" class="flex flex-col items-center gap-1 text-zinc-500 transition-all active:scale-90">
+        <span class="text-lg">📏</span>
+        <span class="text-[9px] font-bold">Físico</span>
+      </button>
+
+      <button onclick="switchTab('objetivos')" id="nav-objetivos" class="flex flex-col items-center gap-1 text-zinc-500 transition-all active:scale-90">
+        <span class="text-lg">🎯</span>
+        <span class="text-[9px] font-bold">Objetivos</span>
+      </button>
+
+      <button onclick="switchTab('resumen')" id="nav-resumen" class="flex flex-col items-center gap-1 text-zinc-500 transition-all active:scale-90">
+        <span class="text-lg">📊</span>
+        <span class="text-[9px] font-bold">Resumen</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    // BASE DE DATOS ESTRUCTURADA POR TIPOLOGÍA Y GRUPOS MUSCULARES
+    const EXERCISE_CATALOG = [
+      // CATEGORÍA POLEAS (LISTA VICENTE INTEGRADA)
+      { name: "Remo en polea sentado con agarre abierto", equip: "Poleas", muscle: "Espalda" },
+      { name: "Remo en polea sentado con agarre cerrado", equip: "Poleas", muscle: "Espalda" },
+      { name: "Curl martillo con cuerda en polea", equip: "Poleas", muscle: "Bíceps" },
+      { name: "Curl de bíceps con barra recta en polea", equip: "Poleas", muscle: "Bíceps" },
+      { name: "Curl bayesian en polea", equip: "Poleas", muscle: "Bíceps" },
+      { name: "Extensión de tríceps con barra recta en polea", equip: "Poleas", muscle: "Tríceps" },
+      { name: "Extensión de tríceps con barra V en polea", equip: "Poleas", muscle: "Tríceps" },
+      { name: "Extensión de tríceps con cuerda en polea", equip: "Poleas", muscle: "Tríceps" },
+      { name: "Extensión de tríceps con barra con agarre supino", equip: "Poleas", muscle: "Tríceps" },
+      { name: "Extensiones de tríceps sobre la cabeza con barra en polea", equip: "Poleas", muscle: "Tríceps" },
+      { name: "Extensiones de tríceps sobre la cabeza con cuerda en polea", equip: "Poleas", muscle: "Tríceps" },
+      { name: "Cruces en polea desde abajo", equip: "Poleas", muscle: "Pecho" },
+      { name: "Cruces en polea desde arriba", equip: "Poleas", muscle: "Pecho" },
+      { name: "Cruces en polea (Altura media)", equip: "Poleas", muscle: "Pecho" },
+      { name: "Jalones frontales con brazos rectos con barra en polea", equip: "Poleas", muscle: "Espalda" },
+      { name: "Pull over con cuerda en polea", equip: "Poleas", muscle: "Espalda" },
+      { name: "Face pull en polea", equip: "Poleas", muscle: "Hombro" },
+      { name: "Elevaciones laterales en polea unilaterales", equip: "Poleas", muscle: "Hombro" },
+      { name: "Rotación externa en polea", equip: "Poleas", muscle: "Hombro" },
+      { name: "Rotación interna en polea", equip: "Poleas", muscle: "Hombro" },
+      { name: "Curl de muñeca sentado en polea", equip: "Poleas", muscle: "Bíceps" },
+      { name: "Curl invertido en polea", equip: "Poleas", muscle: "Bíceps" },
+      { name: "Kitty Curl en polea", equip: "Poleas", muscle: "Bíceps" },
+
+      // CATEGORÍA MÁQUINAS (LISTA VICENTE INTEGRADA)
+      { name: "Lat pulldown (Jalón al pecho en máquina)", equip: "Máquinas", muscle: "Espalda" },
+      { name: "Peck deck (Agarre abierto)", equip: "Máquinas", muscle: "Pecho" },
+      { name: "Peck deck (Agarre cerrado)", equip: "Máquinas", muscle: "Pecho" },
+      { name: "Rear delts (Hombro posterior en máquina)", equip: "Máquinas", muscle: "Hombro" },
+      { name: "Remo en máquina", equip: "Máquinas", muscle: "Espalda" },
+      { name: "Press de pecho en máquina vertical", equip: "Máquinas", muscle: "Pecho" },
+      { name: "Extensión de espalda en máquina", equip: "Máquinas", muscle: "Espalda" },
+      { name: "Press de hombros en máquina", equip: "Máquinas", muscle: "Hombro" },
+      { name: "Curl predicador en máquina", equip: "Máquinas", muscle: "Bíceps" },
+      { name: "Máquina smith (Multipower)", equip: "Máquinas", muscle: "Pecho" },
+      { name: "Máquina de dominadas contrapeso", equip: "Máquinas", muscle: "Espalda" },
+      { name: "Máquina de fondos contrapeso", equip: "Máquinas", muscle: "Tríceps" },
+      { name: "Fondos en máquina", equip: "Máquinas", muscle: "Tríceps" },
+
+      // CATEGORÍA MANCUERNAS (BIBLIOTECA MASIVA VICENTE)
+      { name: "Press plano con mancuernas", equip: "Mancuernas", muscle: "Pecho" },
+      { name: "Press inclinado con mancuernas", equip: "Mancuernas", muscle: "Pecho" },
+      { name: "Press declinado con mancuernas", equip: "Mancuernas", muscle: "Pecho" },
+      { name: "Aperturas planas con mancuernas", equip: "Mancuernas", muscle: "Pecho" },
+      { name: "Aperturas inclinadas con mancuernas", equip: "Mancuernas", muscle: "Pecho" },
+      { name: "Press de hombro sentado con mancuernas", equip: "Mancuernas", muscle: "Hombro" },
+      { name: "Elevaciones laterales con mancuernas", equip: "Mancuernas", muscle: "Hombro" },
+      { name: "Pájaros de hombro posterior con mancuernas", equip: "Mancuernas", muscle: "Hombro" },
+      { name: "Elevaciones frontales con mancuernas", equip: "Mancuernas", muscle: "Hombro" },
+      { name: "Curl de bíceps alterno con mancuernas", equip: "Mancuernas", muscle: "Bíceps" },
+      { name: "Curl de bíceps martillo con mancuernas", equip: "Mancuernas", muscle: "Bíceps" },
+      { name: "Curl de bíceps inclinado con mancuernas", equip: "Mancuernas", muscle: "Bíceps" },
+      { name: "Curl de bíceps concentrado con mancuerna", equip: "Mancuernas", muscle: "Bíceps" },
+      { name: "Remo con mancuerna a una mano", equip: "Mancuernas", muscle: "Espalda" },
+      { name: "Remo apoyado en pecho con mancuernas", equip: "Mancuernas", muscle: "Espalda" },
+      { name: "Copa de tríceps con mancuerna", equip: "Mancuernas", muscle: "Tríceps" },
+      { name: "Patada de tríceps con mancuerna", equip: "Mancuernas", muscle: "Tríceps" },
+      { name: "Paseo del granjero", equip: "Mancuernas", muscle: "Otros" },
+      { name: "Press Arnold con mancuernas", equip: "Mancuernas", muscle: "Hombro" },
+      { name: "Encogimientos de hombros con mancuernas", equip: "Mancuernas", muscle: "Hombro" },
+
+      // PIERNA
+      { name: "Sentadilla trasera con barra", equip: "Pierna", muscle: "Pierna" },
+      { name: "Prensa de piernas 45°", equip: "Pierna", muscle: "Pierna" },
+      { name: "Peso muerto rumano con barra", equip: "Pierna", muscle: "Pierna" },
+      { name: "Sentadilla búlgara con mancuernas", equip: "Pierna", muscle: "Pierna" },
+      { name: "Curl femoral tumbado en máquina", equip: "Pierna", muscle: "Pierna" },
+      { name: "Extensiones de cuádriceps en máquina", equip: "Pierna", muscle: "Pierna" },
+      { name: "Hip thrust con barra", equip: "Pierna", muscle: "Pierna" },
+      { name: "Elevación de gemelos en máquina", equip: "Pierna", muscle: "Pierna" },
+
+      // OTROS
+      { name: "Press de banca plano con barra", equip: "Otros", muscle: "Pecho" },
+      { name: "Press de banca inclinado con barra", equip: "Otros", muscle: "Pecho" },
+      { name: "Press de banca declinado con barra", equip: "Otros", muscle: "Pecho" },
+      { name: "Dominadas en barra", equip: "Otros", muscle: "Espalda" },
+      { name: "Fondos en paralelas", equip: "Otros", muscle: "Tríceps" }
+    ];
+
+    let db;
+    let activeTab = 'entrenar';
+    let activeWorkout = null;
+    let lastWorkoutCached = null;
+
+    // Temporizadores
+    let timerInterval = null;
+    let timerSecondsLeft = 0;
+    let workoutTimerInterval = null;
+    let workoutSecondsElapsed = 0;
+
+    // Filtros de búsqueda cruzados
+    let selectedEquipFilter = 'Todos';
+    let selectedMuscleFilter = 'Todos';
+
+    // Inicialización IndexedDB local para funcionamiento ilimitado y offline
+    const request = indexedDB.open("NacorGymUltimateDB_v1", 2);
+    request.onupgradeneeded = (e) => {
+      const activeDb = e.target.result;
+      if (!activeDb.objectStoreNames.contains("workouts")) {
+        activeDb.createObjectStore("workouts", { keyPath: "id", autoIncrement: true });
+      }
+      if (!activeDb.objectStoreNames.contains("exercises_history")) {
+        activeDb.createObjectStore("exercises_history", { keyPath: "id", autoIncrement: true });
+      }
+      if (!activeDb.objectStoreNames.contains("biometrics")) {
+        activeDb.createObjectStore("biometrics", { keyPath: "date" }); // Almacenará peso, medidas, etc.
+      }
+      if (!activeDb.objectStoreNames.contains("exercise_meta")) {
+        activeDb.createObjectStore("exercise_meta", { keyPath: "name" }); // Vídeos de técnica y consejos
+      }
+      if (!activeDb.objectStoreNames.contains("goals")) {
+        activeDb.createObjectStore("goals", { keyPath: "id", autoIncrement: true });
+      }
+    };
+    
+    request.onsuccess = (e) => {
+      db = e.target.result;
+      loadLastWorkoutToCache();
+      switchTab('entrenar');
+    };
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      if (html.classList.contains('dark')) {
+        html.classList.remove('dark');
+        html.classList.add('light');
+      } else {
+        html.classList.remove('light');
+        html.classList.add('dark');
+      }
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      ['entrenar', 'ejercicios', 'body', 'objetivos', 'resumen'].forEach(t => {
+        const btn = document.getElementById(`nav-${t}`);
+        if (t === tab) {
+          btn.classList.add('text-brand');
+          btn.classList.remove('text-zinc-500');
+        } else {
+          btn.classList.remove('text-brand');
+          btn.classList.add('text-zinc-500');
+        }
+      });
+      renderTabContent();
+    }
+
+    function renderTabContent() {
+      const container = document.getElementById('app-content');
+      if (activeTab === 'entrenar') {
+        if (activeWorkout) {
+          renderActiveWorkout(container);
+        } else {
+          renderWorkoutStarter(container);
+        }
+      } else if (activeTab === 'ejercicios') {
+        renderExerciseLibrary(container);
+      } else if (activeTab === 'body') {
+        renderBodyTracking(container);
+      } else if (activeTab === 'objetivos') {
+        renderGoalsSection(container);
+      } else if (activeTab === 'resumen') {
+        renderIndependentSummary(container);
+      }
+    }
+
+    // --- SÍNTESIS DE SONIDO DE ALERTA NATIVA DE SAFARI/IOS (SIN ARCHIVO EXTERNO) ---
+    function playBeepSound() {
+      const toggle = document.getElementById('sound-alert-toggle');
+      if (toggle && !toggle.checked) return;
+      try {
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.value = 880; // Sonido limpio de campana
+        gainNode.gain.setValueAtTime(0.3, context.currentTime);
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.35);
+      } catch (err) {
+        console.log("Síntesis de audio bloqueada por Safari. Requiere un toque previo del usuario.", err);
+      }
+    }
+
+    // --- TEMPORIZADORES DE DESCANSO ---
+    function startTimer(seconds) {
+      clearInterval(timerInterval);
+      timerSecondsLeft = seconds;
+      document.getElementById('timer-banner').classList.remove('hidden');
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        timerSecondsLeft--;
+        updateTimerDisplay();
+        if (timerSecondsLeft <= 0) {
+          clearInterval(timerInterval);
+          document.getElementById('timer-banner').classList.add('hidden');
+          playBeepSound();
+        }
+      }, 1000);
+    }
+
+    function adjustTimer(amount) {
+      timerSecondsLeft += amount;
+      if (timerSecondsLeft < 0) timerSecondsLeft = 0;
+      updateTimerDisplay();
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      document.getElementById('timer-banner').classList.add('hidden');
+    }
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(timerSecondsLeft / 60).toString().padStart(2, '0');
+      const secs = (timerSecondsLeft % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').textContent = `${mins}:${secs}`;
+    }
+
+    // --- SECCIÓN: ENTRENAR (INICIAR SESIÓN) ---
+    function renderWorkoutStarter(container) {
+      container.innerHTML = `
+        <div class="text-center py-16">
+          <div class="w-20 h-20 bg-brand/10 text-brand rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
+            <span class="text-3xl">💪</span>
+          </div>
+          <h2 class="text-2xl font-black mb-2 dark:text-white light:text-zinc-900 tracking-tight">Registro de Sesión</h2>
+          <p class="text-zinc-400 dark:text-zinc-400 light:text-zinc-600 text-xs max-w-xs mx-auto mb-6">Inicia tu entrenamiento libre e ilimitado de fuerza y técnica.</p>
+          <button onclick="startDynamicWorkout()" class="bg-brand text-zinc-950 font-extrabold px-8 py-4 rounded-2xl text-xs active:scale-95 transition-transform shadow-lg shadow-brand/20">Iniciar Entrenamiento</button>
+        </div>
+      `;
+    }
+
+    function startDynamicWorkout() {
+      activeWorkout = {
+        routine: "Sesión Libre",
+        date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
+        rawDate: new Date(),
+        exercises: []
+      };
+      workoutSecondsElapsed = 0;
+      clearInterval(workoutTimerInterval);
+      workoutTimerInterval = setInterval(() => {
+        workoutSecondsElapsed++;
+        const display = document.getElementById('workout-duration');
+        if (display) {
+          const mins = Math.floor(workoutSecondsElapsed / 60).toString().padStart(2, '0');
+          const secs = (workoutSecondsElapsed % 60).toString().padStart(2, '0');
+          display.textContent = `${mins}:${secs}`;
+        }
+      }, 1000);
+      renderTabContent();
+    }
+
+    // --- SECCIÓN: REGISTRO DE EJERCICIOS ACTIVOS ---
+    function renderActiveWorkout(container) {
+      let exercisesHTML = '';
+
+      activeWorkout.exercises.forEach((ex, exIdx) => {
+        let setsHTML = '';
+        ex.sets.forEach((set, setIdx) => {
+          setsHTML += `
+            <div class="mb-3 transition-all">
+              <div class="flex items-center justify-between gap-1.5 ${set.done ? 'opacity-30' : ''}">
+                <span class="w-10 text-[9px] font-extrabold text-zinc-500 uppercase">S${setIdx + 1}</span>
+                
+                <div class="flex items-center bg-zinc-950 dark:bg-zinc-950 light:bg-zinc-100 border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 rounded-xl px-2 w-24">
+                  <input type="number" id="peso-${exIdx}-${setIdx}" value="${set.peso}" placeholder="-- " class="bg-transparent w-full text-center py-2 text-white dark:text-white light:text-zinc-900 font-extrabold text-sm focus:outline-none" ${set.done ? 'disabled' : ''}>
+                  <span class="text-[9px] text-zinc-500 font-bold">KG</span>
+                </div>
+
+                <div class="flex items-center bg-zinc-950 dark:bg-zinc-950 light:bg-zinc-100 border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 rounded-xl px-2 w-20">
+                  <input type="number" id="reps-${exIdx}-${setIdx}" value="${set.reps}" placeholder="--" class="bg-transparent w-full text-center py-2 text-white dark:text-white light:text-zinc-900 font-extrabold text-sm focus:outline-none" ${set.done ? 'disabled' : ''}>
+                  <span class="text-[9px] text-zinc-500 font-bold">RPS</span>
+                </div>
+
+                <div class="flex items-center gap-1">
+                  <button onclick="toggleNoteInput(${exIdx}, ${setIdx})" class="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-zinc-950 light:bg-zinc-100 border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 flex items-center justify-center text-xs active:scale-90">✍️</button>
+                  <button onclick="toggleSetDone(${exIdx}, ${setIdx})" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 ${set.done ? 'bg-gradient-to-r from-lime-400 to-brand text-zinc-950 font-extrabold' : 'bg-zinc-800 text-zinc-300'}">✓</button>
+                  <button onclick="deleteSet(${exIdx}, ${setIdx})" class="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-zinc-950 light:bg-zinc-100 border border-zinc-800 text-red-500 flex items-center justify-center active:scale-90">✕</button>
+                </div>
+              </div>
+              <div id="note-container-${exIdx}-${setIdx}" class="${set.note ? '' : 'hidden'} mt-1.5 px-10">
+                <input type="text" id="note-${exIdx}-${setIdx}" value="${set.note}" placeholder="Nota..." class="w-full bg-zinc-950 dark:bg-zinc-950 light:bg-zinc-100 border border-zinc-850 rounded-lg py-1 px-2.5 text-[11px] text-zinc-400 focus:outline-none">
+              </div>
+            </div>
+          `;
+        });
+
+        exercisesHTML += `
+          <div class="bg-zinc-900/60 dark:bg-zinc-900/60 light:bg-white border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 p-4 rounded-2xl mb-4 shadow-sm">
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <h3 class="font-extrabold text-xs text-zinc-100 dark:text-zinc-100 light:text-zinc-900 leading-relaxed">${ex.name}</h3>
+                <span class="text-[8px] bg-brand/10 text-brand px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">${getEquipBadge(ex.name)}</span>
+              </div>
+              
+              <!-- CONFIGURACIÓN DE DESCANSO LOCAL PARA ESTE EJERCICIO -->
+              <div class="flex items-center gap-1 bg-zinc-950 dark:bg-zinc-950 light:bg-zinc-100 border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 px-2.5 py-1 rounded-lg">
+                <span class="text-[8px] text-zinc-500 font-extrabold">⏱️</span>
+                <input type="number" id="local-timer-${exIdx}" value="${ex.restTime || 90}" onchange="changeLocalRestTime(${exIdx}, this.value)" class="bg-transparent text-center text-[10px] text-zinc-300 dark:text-zinc-300 light:text-zinc-800 font-extrabold w-6 focus:outline-none">
+                <span class="text-[8px] text-zinc-600 font-extrabold">S</span>
+              </div>
+            </div>
+            
+            <div class="mb-3">${setsHTML}</div>
+            <button onclick="addSet(${exIdx})" class="w-full py-1.5 bg-zinc-950 dark:bg-zinc-950 light:bg-zinc-100 border border-zinc-850 rounded-xl text-[10px] font-bold text-zinc-400 hover:text-brand transition-colors">+ Serie</button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = `
+        <div class="bg-zinc-950 dark:bg-zinc-950 light:bg-white border border-zinc-850 dark:border-zinc-850 light:border-zinc-200 p-4 rounded-2xl mb-5 flex justify-between items-center shadow-lg">
+          <div>
+            <span class="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Cronómetro Sesión</span>
+            <span id="workout-duration" class="text-white dark:text-white light:text-zinc-950 font-mono font-extrabold text-xl">00:00</span>
+          </div>
+          <div class="flex gap-1.5">
+            <button onclick="openWarmupCalculator()" class="bg-zinc-900 dark:bg-zinc-900 light:bg-zinc-100 border border-zinc-800 text-brand px-3 py-2 rounded-xl text-[10px] font-bold">🔥 Calentar</button>
+            <button onclick="openAddExerciseModal()" class="bg-brand text-zinc-950 px-4 py-2 rounded-xl text-[10px] font-bold">+ Ejercicio</button>
+          </div>
+        </div>
+
+        ${exercisesHTML || `
+          <div class="text-center py-12 bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl">
+            <p class="text-xs text-zinc-500 mb-3">Tu sesión está vacía.</p>
+            <button onclick="openAddExerciseModal()" class="bg-zinc-950 border border-zinc-850 text-brand px-4 py-2 rounded-xl text-[10px] font-bold">Añadir tu primer ejercicio</button>
+          </div>
+        `}
+
+        <div class="flex gap-3 mt-6">
+          <button onclick="cancelWorkout()" class="flex-1 py-3 bg-red-950/10 border border-red-900/30 text-red-500 rounded-2xl text-xs font-bold active:scale-95 transition-transform">Descartar</button>
+          <button onclick="finishWorkout()" class="flex-1 py-3 bg-brand text-zinc-950 rounded-2xl text-xs font-extrabold active:scale-95 transition-transform">Guardar Sesión</button>
+        </div>
+      `;
+    }
+
+    function changeLocalRestTime(exIdx, val) {
+      if (activeWorkout && activeWorkout.exercises[exIdx]) {
+        activeWorkout.exercises[exIdx].restTime = parseInt(val) || 90;
+      }
+    }
+
+    function openAddExerciseModal() {
+      document.getElementById('add-exercise-modal').classList.remove('hidden');
+      filterEquip('Todos');
+      filterMuscle('Todos');
+    }
+
+    function closeAddExerciseModal() {
+      document.getElementById('add-exercise-modal').classList.add('hidden');
+      renderTabContent();
+    }
+
+    function filterEquip(equip) {
+      selectedEquipFilter = equip;
+      document.querySelectorAll('.equip-filter-btn').forEach(btn => {
+        if (btn.textContent.includes(equip)) {
+          btn.classList.add('bg-brand', 'text-zinc-950');
+          btn.classList.remove('bg-zinc-900', 'text-zinc-400');
+        } else {
+          btn.classList.remove('bg-brand', 'text-zinc-950');
+          btn.classList.add('bg-zinc-900', 'text-zinc-400');
+        }
+      });
+      renderModalExercisesList();
+    }
+
+    function filterMuscle(muscle) {
+      selectedMuscleFilter = muscle;
+      document.querySelectorAll('.muscle-filter-btn').forEach(btn => {
+        if (btn.textContent.includes(muscle)) {
+          btn.classList.add('bg-brand', 'text-zinc-950');
+          btn.classList.remove('bg-zinc-900', 'text-zinc-400');
+        } else {
+          btn.classList.remove('bg-brand', 'text-zinc-950');
+          btn.classList.add('bg-zinc-900', 'text-zinc-400');
+        }
+      });
+      renderModalExercisesList();
+    }
+
+    function searchModalExercises() {
+      renderModalExercisesList();
+    }
+
+    function renderModalExercisesList() {
+      const searchVal = document.getElementById('modal-search-input').value.toLowerCase();
+      const listContainer = document.getElementById('modal-exercises-list');
+      listContainer.innerHTML = '';
+
+      let exercisesToRender = EXERCISE_CATALOG;
+
+      if (selectedEquipFilter !== 'Todos') {
+        exercisesToRender = exercisesToRender.filter(ex => ex.equip === selectedEquipFilter);
+      }
+      if (selectedMuscleFilter !== 'Todos') {
+        exercisesToRender = exercisesToRender.filter(ex => ex.muscle === selectedMuscleFilter);
+      }
+
+      exercisesToRender.forEach(ex => {
+        if (searchVal && !ex.name.toLowerCase().includes(searchVal)) return;
+
+        const isAdded = activeWorkout.exercises.some(e => e.name === ex.name);
+
+        const div = document.createElement('div');
+        div.className = `flex justify-between items-center p-3 rounded-2xl border ${isAdded ? 'bg-brand/5 border-brand/20' : 'bg-zinc-900/40 border-zinc-800/60'} transition-all shrink-0`;
+        div.innerHTML = `
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs font-extrabold ${isAdded ? 'text-brand' : 'text-zinc-200'}">${ex.name}</span>
+            <span class="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">${ex.equip} • ${ex.muscle}</span>
+          </div>
+          ${isAdded ? `
+            <button onclick="removeExerciseFromWorkout('${ex.name}')" class="text-[9px] font-extrabold bg-red-950/20 text-red-400 border border-red-900/30 px-3 py-1.5 rounded-xl">Quitar</button>
+          ` : `
+            <button onclick="addExerciseToWorkout('${ex.name}')" class="text-[9px] font-extrabold bg-zinc-950 text-brand border border-zinc-850 px-3 py-1.5 rounded-xl">+ Añadir</button>
+          `}
+        `;
+        listContainer.appendChild(div);
+      });
+    }
+
+    async function addExerciseToWorkout(exerciseName) {
+      const lastSession = await getLastExerciseSession(exerciseName);
+      activeWorkout.exercises.push({
+        name: exerciseName,
+        restTime: 90,
+        sets: lastSession ? lastSession.sets.map(s => ({ peso: s.peso, reps: s.reps, note: s.note || '', done: false })) : [{ peso: '', reps: '', note: '', done: false }]
+      });
+      renderModalExercisesList();
+    }
+
+    function removeExerciseFromWorkout(exerciseName) {
+      activeWorkout.exercises = activeWorkout.exercises.filter(e => e.name !== exerciseName);
+      renderModalExercisesList();
+    }
+
+    function addSet(exIdx) {
+      const sets = activeWorkout.exercises[exIdx].sets;
+      const lastSet = sets[sets.length - 1] || { peso: '', reps: '', note: '' };
+      sets.push({ peso: lastSet.peso, reps: lastSet.reps, note: '', done: false });
+      renderTabContent();
+    }
+
+    function deleteSet(exIdx, setIdx) {
+      if (activeWorkout.exercises[exIdx].sets.length > 1) {
+        activeWorkout.exercises[exIdx].sets.splice(setIdx, 1);
+        renderTabContent();
+      }
+    }
+
+    function toggleSetDone(exIdx, setIdx) {
+      const set = activeWorkout.exercises[exIdx].sets[setIdx];
+      const pesoVal = document.getElementById(`peso-${exIdx}-${setIdx}`).value;
+      const repsVal = document.getElementById(`reps-${exIdx}-${setIdx}`).value;
+      const noteVal = document.getElementById(`note-${exIdx}-${setIdx}`).value;
+
+      set.peso = pesoVal !== '' ? parseFloat(pesoVal) : '';
+      set.reps = repsVal !== '' ? parseInt(repsVal) : '';
+      set.note = noteVal;
+      set.done = !set.done;
+
+      if (set.done) {
+        const restTime = activeWorkout.exercises[exIdx].restTime || 90;
+        startTimer(restTime);
+      }
+      renderTabContent();
+    }
+
+    function toggleNoteInput(exIdx, setIdx) {
+      document.getElementById(`note-container-${exIdx}-${setIdx}`).classList.toggle('hidden');
+    }
+
+    async function finishWorkout() {
+      const workoutToSave = {
+        routine: activeWorkout.routine,
+        date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
+        rawDate: new Date(),
+        duration: document.getElementById('workout-duration').textContent,
+        exercises: activeWorkout.exercises.map(ex => ({
+          name: ex.name,
+          sets: ex.sets.filter(s => s.done).map(s => ({ peso: s.peso, reps: s.reps, note: s.note }))
+        })).filter(ex => ex.sets.length > 0)
+      };
+
+      if (workoutToSave.exercises.length === 0) {
+        alert("Completa y pulsa '✓' en al menos una serie antes de guardar.");
+        return;
+      }
+
+      const transaction = db.transaction(["workouts", "exercises_history"], "readwrite");
+      transaction.objectStore("workouts").add(workoutToSave);
+
+      workoutToSave.exercises.forEach(ex => {
+        transaction.objectStore("exercises_history").add({
+          exerciseName: ex.name,
+          date: workoutToSave.date,
+          rawDate: workoutToSave.rawDate,
+          sets: ex.sets
+        });
+      });
+
+      lastWorkoutCached = workoutToSave;
+      activeWorkout = null;
+      clearInterval(workoutTimerInterval);
+      stopTimer();
+      alert("¡Entrenamiento guardado con éxito!");
+      switchTab('resumen');
+    }
+
+    function cancelWorkout() {
+      if (confirm("¿Seguro que deseas descartar este entreno?")) {
+        activeWorkout = null;
+        clearInterval(workoutTimerInterval);
+        stopTimer();
+        switchTab('entrenar');
+      }
+    }
+
+    // --- CACHÉ Y DATOS LOCALES ---
+    function loadLastWorkoutToCache() {
+      const transaction = db.transaction(["workouts"], "readonly");
+      transaction.objectStore("workouts").openCursor(null, "prev").onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          lastWorkoutCached = cursor.value;
+        }
+      };
+    }
+
+    function getLastExerciseSession(exerciseName) {
+      return new Promise((resolve) => {
+        const transaction = db.transaction(["exercises_history"], "readonly");
+        const store = transaction.objectStore("exercises_history");
+        let result = null;
+
+        store.openCursor(null, "prev").onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            if (cursor.value.exerciseName === exerciseName) {
+              result = cursor.value;
+              resolve(result);
+              return;
+            }
+            cursor.continue();
+          } else {
+            resolve(null);
+          }
+        };
+      });
+    }
+
+    // --- SECCIÓN: BIBLIOTECA DE EJERCICIOS ---
+    function renderExerciseLibrary(container) {
+      container.innerHTML = `
+        <h2 class="text-2xl font-black mb-1 tracking-tight">Biblioteca</h2>
+        <p class="text-zinc-400 text-xs mb-4">Organizado por grupos musculares con técnica y consejos.</p>
+        
+        <div class="relative mb-4">
+          <input type="text" id="lib-search-input" onkeyup="filterLibExercises()" placeholder="Buscar ejercicio..." class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 pl-10 text-xs text-white focus:outline-none">
+          <svg class="w-4 h-4 absolute left-3 top-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+
+        <div id="lib-exercises-container" class="space-y-4">
+          <!-- Render dinámico clasificado por grupos musculares -->
+        </div>
+      `;
+
+      const libContainer = document.getElementById('lib-exercises-container');
+      const grouped = {};
+      
+      EXERCISE_CATALOG.forEach(ex => {
+        if (!grouped[ex.muscle]) grouped[ex.muscle] = [];
+        grouped[ex.muscle].push(ex);
+      });
+
+      for (const [muscle, list] of Object.entries(grouped)) {
+        let muscleSection = `
+          <div>
+            <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">${muscle}</h3>
+            <div class="space-y-1.5">
+        `;
+        list.forEach(ex => {
+          muscleSection += `
+            <div onclick="openExerciseDetail('${ex.name}')" class="lib-item-card bg-zinc-900/60 dark:bg-zinc-900/60 light:bg-white border border-zinc-800 dark:border-zinc-800 light:border-zinc-200 px-4 py-3.5 rounded-xl flex justify-between items-center cursor-pointer active:scale-[0.99] transition-transform">
+              <div>
+                <span class="font-extrabold text-xs dark:text-zinc-200 light:text-zinc-900 block">${ex.name}</span>
+                <span class="text-[8px] text-zinc-500 font-bold uppercase tracking-wide">${ex.equip}</span>
+              </div>
+              <span class="text-brand text-xs">→</span>
+            </div>
+          `;
+        });
+        muscleSection += `</div></div>`;
+        libContainer.innerHTML += muscleSection;
+      }
+    }
+
+    function filterLibExercises() {
+      const val = document.getElementById('lib-search-input').value.toLowerCase();
+      document.querySelectorAll('.lib-item-card').forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(val) ? 'flex' : 'none';
+      });
+    }
+
+    // --- DETALLE DE EJERCICIO (HISTORIAL Y ANÁLISIS COMPLETO) ---
+    async function openExerciseDetail(exerciseName) {
+      const container = document.getElementById('app-content');
+      const rawHistory = await getExerciseHistory(exerciseName);
+      const history = rawHistory.reverse();
+      
+      // Obtener metadatos locales (técnica y consejos)
+      const meta = await getExerciseMeta(exerciseName) || { tips: '', videoUrl: '' };
+
+      const firstSession = history[history.length - 1];
+      const recordsThisMonth = getMonthlyRecords(history);
+
+      let recordMax = 0;
+      let maxReps = 0;
+      let totalVolume = 0;
+      let listHTML = '';
+
+      const chartLabels = [];
+      const chartWeights = [];
+      const chartReps = [];
+      const chartEst1RM = [];
+
+      history.forEach((session) => {
+        let sessionMaxWeight = 0;
+        let sessionHTML = `
+          <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl mb-2">
+            <span class="text-[9px] font-bold text-zinc-400 block border-b border-zinc-800 pb-1 mb-2">${session.date}</span>
+        `;
+        session.sets.forEach((set, sIdx) => {
+          const w = parseFloat(set.peso) || 0;
+          const r = parseInt(set.reps) || 0;
+          if (w > recordMax) recordMax = w;
+          if (w > sessionMaxWeight) sessionMaxWeight = w;
+          if (r > maxReps) maxReps = r;
+          totalVolume += w * r;
+
+          sessionHTML += `
+            <div class="flex justify-between text-xs py-0.5">
+              <span class="text-zinc-500">Serie ${sIdx + 1}</span>
+              <span class="font-bold text-zinc-300">${set.peso} kg × ${set.reps} r ${set.note ? `<span class="text-brand text-[9px] italic ml-1">[${set.note}]</span>` : ''}</span>
+            </div>
+          `;
+        });
+        sessionHTML += `</div>`;
+        listHTML += sessionHTML;
+
+        chartLabels.push(session.date);
+        chartWeights.push(sessionMaxWeight);
+        
+        // Volumen y reps máximas de la sesión para las gráficas
+        const sessionMaxReps = Math.max(...session.sets.map(s => parseInt(s.reps) || 0));
+        chartReps.push(sessionMaxReps);
+        
+        // Epley 1RM: $1RM = Peso \cdot \left(1 + \frac{Reps}{30}\right)$
+        const session1RM = Math.round(sessionMaxWeight * (1 + sessionMaxReps / 30));
+        chartEst1RM.push(session1RM);
+      });
+
+      const calculated1RM = recordMax > 0 && maxReps > 0 ? Math.round(recordMax * (1 + maxReps / 30)) : 0;
+
+      container.innerHTML = `
+        <button onclick="switchTab('ejercicios')" class="text-brand text-xs font-bold mb-4 flex items-center gap-1">← Biblioteca</button>
+        <h2 class="text-xl font-extrabold mb-3 tracking-tight">${exerciseName}</h2>
+
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-center">
+            <span class="text-[8px] text-zinc-500 font-bold block mb-0.5 uppercase">Primer Registro</span>
+            <span class="text-[10px] font-extrabold text-zinc-300">${firstSession ? firstSession.date : '---'}</span>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-center">
+            <span class="text-[8px] text-zinc-500 font-bold block mb-0.5 uppercase">1RM Máx.</span>
+            <span class="text-xs font-extrabold text-brand">${calculated1RM} Kg</span>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-center">
+            <span class="text-[8px] text-zinc-500 font-bold block mb-0.5 uppercase">Récord Mes</span>
+            <span class="text-xs font-extrabold text-white">${recordsThisMonth.maxWeight} Kg</span>
+          </div>
+        </div>
+
+        <!-- GRÁFICAS DE EVOLUCIÓN (PESO / REPETICIONES / 1RM) -->
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Evolución Histórica</span>
+            <div class="flex gap-1.5">
+              <button onclick="toggleChartType('weight')" id="btn-chart-weight" class="text-[8px] bg-brand text-zinc-950 px-1.5 py-0.5 rounded font-extrabold">Peso</button>
+              <button onclick="toggleChartType('reps')" id="btn-chart-reps" class="text-[8px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded font-extrabold">Reps</button>
+              <button onclick="toggleChartType('1rm')" id="btn-chart-1rm" class="text-[8px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded font-extrabold">1RM</button>
+            </div>
+          </div>
+          <canvas id="exerciseChart" class="w-full h-44"></canvas>
+        </div>
+
+        <!-- CONSEJOS TÉCNICOS Y ENLACE DE VÍDEO -->
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl mb-4">
+          <h3 class="text-xs font-bold text-zinc-300 mb-2">💡 Consejos Técnicos y Video</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">Consejos personalizados</label>
+              <textarea id="tips-input" class="w-full bg-zinc-950 border border-zinc-850 rounded-lg p-2 text-xs text-zinc-300 mt-1 focus:outline-none focus:border-brand" placeholder="Ej: Mantener codos cerrados y retracción escapular...">${meta.tips}</textarea>
+            </div>
+            <div>
+              <label class="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">URL Video de Técnica (YouTube/Vimeo)</label>
+              <input type="text" id="video-input" value="${meta.videoUrl}" class="w-full bg-zinc-950 border border-zinc-850 rounded-lg p-2 text-xs text-zinc-300 mt-1 focus:outline-none focus:border-brand" placeholder="https://youtube.com/watch?...">
+            </div>
+            <button onclick="saveExerciseMeta('${exerciseName}')" class="w-full py-1.5 bg-brand text-zinc-950 text-[10px] font-extrabold rounded-lg">Guardar Notas de Técnica</button>
+          </div>
+        </div>
+
+        <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Historial Completo</h3>
+        ${listHTML || '<p class="text-xs text-zinc-500">Aún no hay ningún entrenamiento registrado.</p>'}
+      `;
+
+      // Render inicial de gráfica (peso)
+      renderChart(chartLabels, chartWeights, 'Peso Máximo (Kg)');
+
+      // Variables de almacenamiento para alternar la gráfica sin recargar IndexedDB
+      window.currentChartLabels = chartLabels;
+      window.currentChartWeights = chartWeights;
+      window.currentChartReps = chartReps;
+      window.currentChartEst1RM = chartEst1RM;
+    }
+
+    function toggleChartType(type) {
+      const labels = window.currentChartLabels;
+      const weights = window.currentChartWeights;
+      const reps = window.currentChartReps;
+      const est1RM = window.currentChartEst1RM;
+
+      ['weight', 'reps', '1rm'].forEach(t => {
+        const btn = document.getElementById(`btn-chart-${t}`);
+        if (t === type) {
+          btn.classList.add('bg-brand', 'text-zinc-950');
+          btn.classList.remove('bg-zinc-800', 'text-zinc-400');
+        } else {
+          btn.classList.remove('bg-brand', 'text-zinc-950');
+          btn.classList.add('bg-zinc-800', 'text-zinc-400');
+        }
+      });
+
+      if (type === 'weight') {
+        renderChart(labels, weights, 'Peso Máximo (Kg)');
+      } else if (type === 'reps') {
+        renderChart(labels, reps, 'Repeticiones Máximas');
+      } else if (type === '1rm') {
+        renderChart(labels, est1RM, '1RM Estimado (Kg)');
+      }
+    }
+
+    function renderChart(labels, data, datasetLabel) {
+      const ctx = document.getElementById('exerciseChart').getContext('2d');
+      if (window.activeDetailChart) {
+        window.activeDetailChart.destroy();
+      }
+      window.activeDetailChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels.slice(-6), // Últimas 6 sesiones
+          datasets: [{
+            label: datasetLabel,
+            data: data.slice(-6),
+            borderColor: '#a3e635',
+            backgroundColor: 'rgba(163, 230, 53, 0.05)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { grid: { color: '#27272a' }, ticks: { color: '#71717a', font: { size: 9 } } },
+            x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 9 } } }
+          }
+        }
+      });
+    }
+
+    function getMonthlyRecords(history) {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      let maxWeight = 0;
+      history.forEach(session => {
+        const d = new Date(session.rawDate);
+        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+          session.sets.forEach(s => {
+            const w = parseFloat(s.peso) || 0;
+            if (w > maxWeight) maxWeight = w;
+          });
+        }
+      });
+      return { maxWeight };
+    }
+
+    function saveExerciseMeta(exerciseName) {
+      const tips = document.getElementById('tips-input').value;
+      const videoUrl = document.getElementById('video-input').value;
+
+      const transaction = db.transaction(["exercise_meta"], "readwrite");
+      transaction.objectStore("exercise_meta").put({ name: exerciseName, tips, videoUrl });
+      alert("¡Notas de técnica guardadas con éxito!");
+    }
+
+    function getExerciseMeta(exerciseName) {
+      return new Promise((resolve) => {
+        const transaction = db.transaction(["exercise_meta"], "readonly");
+        const request = transaction.objectStore("exercise_meta").get(exerciseName);
+        request.onsuccess = (e) => {
+          resolve(e.target.result);
+        };
+      });
+    }
+
+    // --- SECCIÓN: SEGUIMIENTO FÍSICO (COMODÍN DE PROGRESO) ---
+    async function renderBodyTracking(container) {
+      const biometrics = await getBiometricsHistory();
+      const latest = biometrics[biometrics.length - 1] || { peso: '--', brazo: '--', pecho: '--', cintura: '--', muslo: '--' };
+
+      container.innerHTML = `
+        <h2 class="text-2xl font-black mb-1 tracking-tight">Seguimiento Físico</h2>
+        <p class="text-zinc-400 text-xs mb-5">Analiza tu composición corporal y sube tus fotos.</p>
+
+        <!-- REGISTRO DEL DÍA -->
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-4 shadow-sm">
+          <h3 class="text-xs font-bold text-zinc-300 mb-3">Registrar Medidas de Hoy</h3>
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-xl flex items-center">
+              <span class="text-[9px] text-zinc-500 font-extrabold w-10 uppercase">Peso</span>
+              <input type="number" id="body-weight" placeholder="Kg" class="bg-transparent font-bold text-xs text-white focus:outline-none w-full">
+            </div>
+            <div class="bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-xl flex items-center">
+              <span class="text-[9px] text-zinc-500 font-extrabold w-10 uppercase">Brazo</span>
+              <input type="number" id="body-arm" placeholder="Cm" class="bg-transparent font-bold text-xs text-white focus:outline-none w-full">
+            </div>
+            <div class="bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-xl flex items-center">
+              <span class="text-[9px] text-zinc-500 font-extrabold w-10 uppercase">Pecho</span>
+              <input type="number" id="body-chest" placeholder="Cm" class="bg-transparent font-bold text-xs text-white focus:outline-none w-full">
+            </div>
+            <div class="bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-xl flex items-center">
+              <span class="text-[9px] text-zinc-500 font-extrabold w-10 uppercase">Cintura</span>
+              <input type="number" id="body-waist" placeholder="Cm" class="bg-transparent font-bold text-xs text-white focus:outline-none w-full">
+            </div>
+          </div>
+          <button onclick="saveBiometrics()" class="w-full py-2 bg-brand text-zinc-950 text-xs font-extrabold rounded-xl">Guardar Registro Corporal</button>
+        </div>
+
+        <!-- HISTORIAL CORPORAL -->
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-4">
+          <h3 class="text-xs font-bold text-zinc-300 mb-2">Evolución del Peso</h3>
+          <canvas id="weightHistoryChart" class="w-full h-32"></canvas>
+        </div>
+
+        <!-- FOTOS DE PROGRESO (ANTES Y DESPUÉS LOCAL) -->
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl">
+          <h3 class="text-xs font-bold text-zinc-300 mb-2">📸 Comparador de Fotos de Progreso</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="border border-zinc-800 rounded-xl p-2 text-center flex flex-col items-center justify-center min-h-32 relative">
+              <span class="text-[9px] text-zinc-500 uppercase font-bold mb-1">Antes</span>
+              <input type="file" id="photo-before" class="hidden" onchange="saveProgressPhoto('before', this)">
+              <button onclick="document.getElementById('photo-before').click()" class="bg-zinc-950 px-3 py-1.5 rounded text-[9px] font-bold">Subir Foto</button>
+              <img id="img-before" class="hidden absolute inset-0 w-full h-full object-cover rounded-xl" onclick="document.getElementById('photo-before').click()">
+            </div>
+            <div class="border border-zinc-800 rounded-xl p-2 text-center flex flex-col items-center justify-center min-h-32 relative">
+              <span class="text-[9px] text-zinc-500 uppercase font-bold mb-1">Después</span>
+              <input type="file" id="photo-after" class="hidden" onchange="saveProgressPhoto('after', this)">
+              <button onclick="document.getElementById('photo-after').click()" class="bg-zinc-950 px-3 py-1.5 rounded text-[9px] font-bold">Subir Foto</button>
+              <img id="img-after" class="hidden absolute inset-0 w-full h-full object-cover rounded-xl" onclick="document.getElementById('photo-after').click()">
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Renderizar gráfica de peso si existen registros
+      if (biometrics.length > 0) {
+        renderWeightChart(biometrics);
+        loadSavedPhotos();
+      }
+    }
+
+    function saveProgressPhoto(type, input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        localStorage.setItem(`progress-photo-${type}`, e.target.result);
+        loadSavedPhotos();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadSavedPhotos() {
+      const before = localStorage.getItem('progress-photo-before');
+      const after = localStorage.getItem('progress-photo-after');
+      if (before) {
+        const img = document.getElementById('img-before');
+        img.src = before;
+        img.classList.remove('hidden');
+      }
+      if (after) {
+        const img = document.getElementById('img-after');
+        img.src = after;
+        img.classList.remove('hidden');
+      }
+    }
+
+    function renderWeightChart(biometrics) {
+      const ctx = document.getElementById('weightHistoryChart').getContext('2d');
+      const labels = biometrics.map(b => b.date);
+      const weights = biometrics.map(b => parseFloat(b.peso) || 0);
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels.slice(-10),
+          datasets: [{
+            data: weights.slice(-10),
+            borderColor: '#a3e635',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { ticks: { color: '#71717a', font: { size: 9 } } },
+            x: { ticks: { color: '#71717a', font: { size: 9 } } }
+          }
+        }
+      });
+    }
+
+    function saveBiometrics() {
+      const peso = document.getElementById('body-weight').value;
+      const brazo = document.getElementById('body-arm').value;
+      const pecho = document.getElementById('body-chest').value;
+      const cintura = document.getElementById('body-waist').value;
+
+      if (!peso) {
+        alert("Por favor, ingresa tu peso actual para guardar.");
+        return;
+      }
+
+      const dateStr = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      const record = { date: dateStr, peso, brazo, pecho, cintura, rawDate: new Date() };
+
+      const transaction = db.transaction(["biometrics"], "readwrite");
+      transaction.objectStore("biometrics").put(record);
+      alert("¡Registro corporal guardado!");
+      renderTabContent();
+    }
+
+    function getBiometricsHistory() {
+      return new Promise((resolve) => {
+        const transaction = db.transaction(["biometrics"], "readonly");
+        const store = transaction.objectStore("biometrics");
+        const results = [];
+        store.openCursor().onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            results.push(cursor.value);
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
+        };
+      });
+    }
+
+    // --- SECCIÓN: OBJETIVOS CORPORATIVOS (GOALS) ---
+    async function renderGoalsSection(container) {
+      const goals = await getGoalsFromDB();
+
+      container.innerHTML = `
+        <h2 class="text-2xl font-black mb-1 tracking-tight">Objetivos</h2>
+        <p class="text-zinc-400 text-xs mb-5">Establece tus metas de peso y monitoriza tu progreso.</p>
+
+        <!-- CREAR OBJETIVO -->
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-4">
+          <h3 class="text-xs font-bold text-zinc-300 mb-3">Establecer Nueva Meta</h3>
+          <div class="space-y-2 mb-3">
+            <select id="goal-exercise-select" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-white focus:outline-none">
+              ${ALL_EXERCISES = [...new Set(EXERCISE_CATALOG.map(e => e.name))].map(name => `<option value="${name}">${name}</option>`).join('')}
+            </select>
+            <div class="flex gap-2">
+              <input type="number" id="goal-weight-input" placeholder="Peso objetivo (Kg)" class="bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-white w-full focus:outline-none">
+              <button onclick="createGoal()" class="bg-brand text-zinc-950 font-extrabold px-4 rounded-xl text-xs shrink-0">Crear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LISTA DE OBJETIVOS -->
+        <div class="space-y-2">
+          <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Progreso de tus metas</h3>
+          ${goals.length === 0 ? '<p class="text-xs text-zinc-500">No has creado objetivos todavía.</p>' : ''}
+          ${goals.map(g => {
+            const pct = Math.min(100, Math.round((g.current / g.target) * 100)) || 0;
+            return `
+              <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-zinc-200">${g.exercise}</h4>
+                    <span class="text-[9px] text-zinc-500 font-bold">Meta: ${g.target} Kg / Actual: ${g.current} Kg</span>
+                  </div>
+                  <span class="text-[10px] font-black text-brand">${pct}%</span>
+                </div>
+                <div class="w-full bg-zinc-950 h-2 rounded-full overflow-hidden">
+                  <div class="bg-brand h-full rounded-full" style="width: ${pct}%"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    async function createGoal() {
+      const exercise = document.getElementById('goal-exercise-select').value;
+      const targetVal = document.getElementById('goal-weight-input').value;
+
+      if (!targetVal) return;
+
+      // Obtener el récord de este ejercicio actual
+      const history = await getExerciseHistory(exercise);
+      let record = 0;
+      history.forEach(s => {
+        s.sets.forEach(set => {
+          const w = parseFloat(set.peso) || 0;
+          if (w > record) record = w;
+        });
+      });
+
+      const goal = { exercise, target: parseFloat(targetVal), current: record };
+      const transaction = db.transaction(["goals"], "readwrite");
+      transaction.objectStore("goals").add(goal);
+      alert("¡Objetivo registrado!");
+      renderTabContent();
+    }
+
+    function getGoalsFromDB() {
+      return new Promise((resolve) => {
+        const transaction = db.transaction(["goals"], "readonly");
+        const store = transaction.objectStore("goals");
+        const results = [];
+        store.openCursor().onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            results.push(cursor.value);
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
+        };
+      });
+    }
+
+    // --- SECCIÓN INDEPENDIENTE: RESUMEN Y EXPORTACIÓN ---
+    function renderIndependentSummary(container) {
+      if (!lastWorkoutCached) {
+        container.innerHTML = `
+          <h2 class="text-2xl font-black mb-1 tracking-tight">Resumen de Sesión</h2>
+          <p class="text-zinc-400 text-xs mb-6">Analiza y descarga tus reportes de rendimiento de forma local.</p>
+          <div class="text-center py-10 bg-zinc-900/30 border border-dashed border-zinc-800 rounded-2xl">
+            <p class="text-xs text-zinc-500">Aún no has registrado ningún entrenamiento en esta sesión para analizar.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Calcular volumen total del último entrenamiento registrado
+      let totalVolume = 0;
+      lastWorkoutCached.exercises.forEach(ex => {
+        ex.sets.forEach(set => {
+          const w = parseFloat(set.peso) || 0;
+          const r = parseInt(set.reps) || 0;
+          totalVolume += w * r;
+        });
+      });
+
+      container.innerHTML = `
+        <h2 class="text-2xl font-black mb-1 tracking-tight">Análisis y Exportación</h2>
+        <p class="text-zinc-400 text-xs mb-5">Sección corporativa de exportación avanzada.</p>
+
+        <!-- INFORMACIÓN GENERAL DE LA SESIÓN -->
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-4">
+          <span class="text-[9px] text-brand uppercase font-black tracking-widest block mb-2">Entrenamiento Procesado</span>
+          <h3 class="text-base font-extrabold text-white">${lastWorkoutCached.routine}</h3>
+          <p class="text-[10px] text-zinc-500 mb-3">${lastWorkoutCached.date} (⏱️ Duración: ${lastWorkoutCached.duration || 'N/A'})</p>
+
+          <div class="grid grid-cols-2 gap-2 mt-2">
+            <div class="bg-zinc-950 p-3 rounded-xl">
+              <span class="text-[8px] text-zinc-500 font-bold block mb-0.5 uppercase">Volumen Total</span>
+              <span class="text-sm font-extrabold text-white">${totalVolume} Kg</span>
+            </div>
+            <div class="bg-zinc-950 p-3 rounded-xl">
+              <span class="text-[8px] text-zinc-500 font-bold block mb-0.5 uppercase">Ejercicios</span>
+              <span class="text-sm font-extrabold text-brand">${lastWorkoutCached.exercises.length}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACCIONES DE EXPORTACIÓN (TXT / CSV / PDF) -->
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-4">
+          <h3 class="text-xs font-bold text-zinc-300 mb-3">Descargas y Formatos</h3>
+          <div class="space-y-2">
+            <button onclick="exportToTXT()" class="w-full py-2.5 bg-zinc-950 border border-zinc-850 hover:bg-zinc-900 text-zinc-300 text-xs font-bold rounded-xl active:scale-95 transition-all text-left px-4 flex justify-between">
+              <span>📋 Exportar Reporte en Texto Plano</span>
+              <span class="text-zinc-500">→</span>
+            </button>
+            <button onclick="exportToExcelCSV()" class="w-full py-2.5 bg-zinc-950 border border-zinc-850 hover:bg-zinc-900 text-zinc-300 text-xs font-bold rounded-xl active:scale-95 transition-all text-left px-4 flex justify-between">
+              <span>📊 Exportar Reporte a Tabla de Excel (.csv)</span>
+              <span class="text-zinc-500">→</span>
+            </button>
+            <button onclick="window.print()" class="w-full py-2.5 bg-zinc-950 border border-zinc-850 hover:bg-zinc-900 text-zinc-300 text-xs font-bold rounded-xl active:scale-95 transition-all text-left px-4 flex justify-between">
+              <span>🖨️ Imprimir / Guardar en PDF de iOS</span>
+              <span class="text-zinc-500">→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- COPIAS DE SEGURIDAD GENERALES -->
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl">
+          <h3 class="text-xs font-bold text-zinc-300 mb-1">Copia de Seguridad Compatible con iCloud</h3>
+          <p class="text-[10px] text-zinc-500 mb-3">Exporta el archivo global de tu base de datos y guárdalo en tu carpeta de iCloud Drive para restaurarlo en cualquier momento.</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="exportData()" class="py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-[10px] font-bold text-zinc-300">Descargar Copia</button>
+            <button onclick="triggerImport()" class="py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-[10px] font-bold text-zinc-300">Restaurar Copia</button>
+          </div>
+          <input type="file" id="importFile" class="hidden" onchange="importData(event)">
+        </div>
+      `;
+    }
+
+    function exportToTXT() {
+      if (!lastWorkoutCached) return;
+      let text = `💪 NacorGym Ultimate Report - ${lastWorkoutCached.routine} (${lastWorkoutCached.date})\n⏱️ Duración de sesión: ${lastWorkoutCached.duration || 'N/A'}\n\n`;
+      lastWorkoutCached.exercises.forEach(ex => {
+        text += `• ${ex.name}:\n`;
+        ex.sets.forEach((set, sIdx) => {
+          text += `  Serie ${sIdx + 1}: ${set.peso} kg x ${set.reps} r ${set.note ? `[${set.note}]` : ''}\n`;
+        });
+        text += `\n`;
+      });
+      navigator.clipboard.writeText(text).then(() => alert("¡Reporte copiado en portapapeles en formato texto!"));
+    }
+
+    function exportToExcelCSV() {
+      if (!lastWorkoutCached) return;
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Ejercicio,Serie,Peso,Repeticiones,Nota\r\n";
+
+      lastWorkoutCached.exercises.forEach(ex => {
+        ex.sets.forEach((set, sIdx) => {
+          csvContent += `"${ex.name}",${sIdx + 1},${set.peso},${set.reps},"${set.note || ''}"\r\n`;
+        });
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `NacorGym_Entrenamiento_${lastWorkoutCached.date.replace(/ /g, "_")}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function getEquipBadge(exName) {
+      const match = EXERCISE_CATALOG.find(ex => ex.name === exName);
+      return match ? match.equip : 'Otros';
+    }
+
+    // --- COPIAS DE SEGURIDAD MANUALES ---
+    async function exportData() {
+      const workouts = await getAllWorkouts();
+      const transaction = db.transaction(["exercises_history"], "readonly");
+      const store = transaction.objectStore("exercises_history");
+      const history = [];
+
+      store.openCursor().onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          history.push(cursor.value);
+          cursor.continue();
+        } else {
+          const backup = { workouts, history };
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
+          const dlAnchor = document.createElement('a');
+          dlAnchor.setAttribute("href", dataStr);
+          dlAnchor.setAttribute("download", `NacorGym_Ultimate_Backup.json`);
+          dlAnchor.click();
+        }
+      };
+    }
+
+    function triggerImport() { document.getElementById('importFile').click(); }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(evt) {
+        try {
+          const backup = JSON.parse(evt.target.result);
+          const transaction = db.transaction(["workouts", "exercises_history"], "readwrite");
+          transaction.objectStore("workouts").clear();
+          transaction.objectStore("exercises_history").clear();
+
+          backup.workouts.forEach(w => transaction.objectStore("workouts").add(w));
+          backup.history.forEach(h => transaction.objectStore("exercises_history").add(h));
+
+          alert("¡Copia importada!");
+          renderTabContent();
+        } catch { alert("Error en el formato de importación."); }
+      };
+      reader.readAsText(file);
+    }
+
+    function getAllWorkouts() {
+      return new Promise((resolve) => {
+        const transaction = db.transaction(["workouts"], "readonly");
+        const store = transaction.objectStore("workouts");
+        const results = [];
+        store.openCursor().onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            results.push(cursor.value);
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
+        };
+      });
+    }
+
+    // --- UTILERÍA: CALENTAMIENTO ---
+    function openWarmupCalculator() {
+      document.getElementById('warmup-modal').classList.remove('hidden');
+      document.getElementById('warmup-output').innerHTML = '';
+    }
+
+    function closeWarmupCalculator() {
+      document.getElementById('warmup-modal').classList.add('hidden');
+    }
+
+    function calculateWarmup() {
+      const weightVal = document.getElementById('warmup-weight-input').value;
+      const output = document.getElementById('warmup-output');
+      if (!weightVal) return;
+
+      const target = parseFloat(weightVal);
+      const s1 = Math.round(target * 0.40);
+      const s2 = Math.round(target * 0.60);
+      const s3 = Math.round(target * 0.80);
+
+      output.innerHTML = `
+        <div class="bg-zinc-900 p-3 rounded-xl border border-zinc-850 space-y-2 mt-3 text-white dark:text-white light:text-zinc-900">
+          <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Tu Protocolo de Calentamiento:</span>
+          <div class="flex justify-between text-xs py-1 border-b border-zinc-950">
+            <span class="text-zinc-400 font-medium">Aproximación 1 (40%):</span>
+            <span class="text-brand font-bold">${s1} kg × 10 reps</span>
+          </div>
+          <div class="flex justify-between text-xs py-1 border-b border-zinc-950">
+            <span class="text-zinc-400 font-medium">Aproximación 2 (60%):</span>
+            <span class="text-brand font-bold">${s2} kg × 6 reps</span>
+          </div>
+          <div class="flex justify-between text-xs py-1">
+            <span class="text-zinc-400 font-medium">Aproximación 3 (80%):</span>
+            <span class="text-brand font-bold">${s3} kg × 2 reps</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // --- CALCULADORA DE DISCOS ---
+    function openPlateCalculator() {
+      document.getElementById('plate-modal').classList.remove('hidden');
+    }
+
+    function closePlateCalculator() {
+      document.getElementById('plate-modal').classList.add('hidden');
+    }
+
+    function calculatePlates() {
+      const targetInput = document.getElementById('calc-weight-input').value;
+      const output = document.getElementById('plates-output');
+      if (!targetInput) return;
+
+      const totalWeight = parseFloat(targetInput);
+      const barWeight = 20;
+      const remainingWeight = totalWeight - barWeight;
+
+      if (remainingWeight < 0) {
+        output.innerHTML = `<span class="text-red-400 font-bold">Debe ser superior a 20 kg (barra olímpica).</span>`;
+        return;
+      }
+
+      const weightsOnOneSide = remainingWeight / 2;
+      const availablePlates = [25, 20, 15, 10, 5, 2.5, 1.25];
+      let leftToCalculate = weightsOnOneSide;
+      let plateCounts = {};
+
+      availablePlates.forEach(plate => {
+        const count = Math.floor(leftToCalculate / plate);
+        if (count > 0) {
+          plateCounts[plate] = count;
+          leftToCalculate -= count * plate;
+        }
+      });
+
+      let resultsHTML = `<span class="block text-[10px] uppercase font-bold text-zinc-500 mb-2">Discos por cada lado:</span>`;
+      for (const [plate, count] of Object.entries(plateCounts)) {
+        resultsHTML += `
+          <div class="flex justify-between py-1 border-b border-zinc-900 text-white dark:text-white light:text-zinc-800">
+            <span class="font-bold">${plate} kg</span>
+            <span class="text-brand font-extrabold">x ${count} ud.</span>
+          </div>
+        `;
+      }
+      output.innerHTML = resultsHTML;
+    }
+  </script>
+</body>
+</html>
