@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>NacorGym Enterprise</title>
+  
+  <!-- PWA & iOS Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#09090b">
+  
+  <!-- Tailwind CSS & Font -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js para gráficas de alto rendimiento -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: { brand: '#a3e635', darkBg: '#09090b', darkCard: '#18181b' }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      background-color: #09090b;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      overscroll-behavior-y: contain;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="text-zinc-100 font-sans min-h-screen flex flex-col justify-between overflow-x-hidden pb-20">
+
+  <!-- HEADER -->
+  <header class="border-b border-zinc-850 bg-zinc-950/95 backdrop-blur-md sticky top-0 z-40 px-4 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-3.5 h-7 bg-brand rounded-full shadow-[0_0_12px_rgba(163,230,53,0.4)]"></div>
+      <h1 class="text-xl font-extrabold tracking-tight">Nacor<span class="text-brand">Gym</span><span class="text-[9px] bg-brand/20 text-brand px-1.5 py-0.5 rounded ml-1.5 font-bold uppercase">Enterprise</span></h1>
+    </div>
+    <div class="flex gap-1.5">
+      <button onclick="openPlateCalculator()" class="p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs font-bold text-zinc-300 active:scale-95 transition-transform" title="Calculadora de Discos">🏋️‍♂️</button>
+      <button onclick="exportData()" class="px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 rounded-xl text-xs font-bold text-zinc-300 active:scale-95 transition-transform">Exportar</button>
+      <button onclick="triggerImport()" class="px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 rounded-xl text-xs font-bold text-zinc-300 active:scale-95 transition-transform">Importar</button>
+      <input type="file" id="importFile" class="hidden" onchange="importData(event)">
+    </div>
+  </header>
+
+  <!-- TEMPORIZADOR DE DESCANSO AVANZADO (ESTILO IOS) -->
+  <div id="timer-banner" class="hidden fixed top-20 left-1/2 -translate-x-1/2 bg-zinc-950/95 border border-zinc-800 px-5 py-3 rounded-2xl z-50 shadow-2xl flex flex-col items-center gap-2 backdrop-blur-lg w-72 transition-all">
+    <div class="flex items-center justify-between w-full">
+      <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Tiempo de Descanso</span>
+      <span id="timer-display" class="text-brand font-mono font-extrabold text-lg">01:30</span>
+    </div>
+    <div class="flex gap-1.5 w-full">
+      <button onclick="adjustTimer(-30)" class="flex-1 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-semibold text-zinc-300">-30s</button>
+      <button onclick="adjustTimer(30)" class="flex-1 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-semibold text-zinc-300">+30s</button>
+      <button onclick="stopTimer()" class="flex-1 py-1 bg-red-950/40 text-red-400 border border-red-900/40 rounded-lg text-xs font-bold">Saltar</button>
+    </div>
+  </div>
+
+  <!-- CALCULADORA DE DISCOS (MODAL MODERNO) -->
+  <div id="plate-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 w-full max-w-sm">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-sm text-zinc-200">Calculadora de Discos (Barra 20kg)</h3>
+        <button onclick="closePlateCalculator()" class="text-zinc-500 text-xs font-bold">Cerrar</button>
+      </div>
+      <div class="mb-4">
+        <label class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block mb-1">Peso Objetivo (Kg)</label>
+        <div class="flex gap-2">
+          <input type="number" id="calc-weight-input" placeholder="Ej: 80" class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 w-full text-white font-bold focus:outline-none focus:border-brand">
+          <button onclick="calculatePlates()" class="bg-brand text-zinc-950 px-4 rounded-xl text-xs font-bold">Calcular</button>
+        </div>
+      </div>
+      <div id="plates-output" class="text-xs text-zinc-400 space-y-1">
+        <!-- Resultado dinámico -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main id="app-content" class="flex-1 px-4 py-6 pb-24 overflow-y-auto max-w-lg mx-auto w-full">
+    <div class="flex flex-col items-center justify-center py-20 text-zinc-500">
+      <span class="animate-spin h-6 w-6 border-2 border-brand border-t-transparent rounded-full mb-3"></span>
+      <p class="text-sm font-semibold">Cargando base de datos corporativa...</p>
+    </div>
+  </main>
+
+  <!-- NAV BAR -->
+  <nav class="fixed bottom-0 left-0 right-0 border-t border-zinc-850 bg-zinc-950/95 backdrop-blur-xl z-40 pb-5">
+    <div class="max-w-lg mx-auto flex justify-around py-3">
+      <button onclick="switchTab('entrenar')" id="nav-entrenar" class="flex flex-col items-center gap-1 text-brand transition-all active:scale-90">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+        <span class="text-[10px] font-bold">Entrenar</span>
+      </button>
+      
+      <button onclick="switchTab('ejercicios')" id="nav-ejercicios" class="flex flex-col items-center gap-1 text-zinc-500 transition-all active:scale-90">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        <span class="text-[10px] font-bold">Ejercicios</span>
+      </button>
+
+      <button onclick="switchTab('stats')" id="nav-stats" class="flex flex-col items-center gap-1 text-zinc-500 transition-all active:scale-90">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+        <span class="text-[10px] font-bold">Estadísticas</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    // BASE DE DATOS MASIVA DE EJERCICIOS (50+ Ejercicios reales)
+    const EXERCISE_DATABASE = {
+      "Pecho": [
+        "Press de Banca Plano con Barra", "Press Inclinado con Mancuernas", 
+        "Press Declinado con Barra", "Aperturas con Mancuernas", 
+        "Cruce de Poleas desde Abajo", "Cruces de Poleas desde Arriba", 
+        "Fondos en Paralelas (Pecho)", "Pec Dec (Máquina de Aperturas)"
+      ],
+      "Espalda": [
+        "Dominadas Pronas", "Dominadas Supinas", "Remo con Barra Pendlay", 
+        "Remo con Mancuerna a una mano", "Jalón al Pecho", "Remo Gironda en Polea", 
+        "Pull-over con Polea Alta", "Hiperextensiones Lumbares", "Remo en Máquina Convergente"
+      ],
+      "Hombro": [
+        "Press Militar con Barra", "Press Sentado con Mancuernas", 
+        "Elevaciones Laterales con Mancuerna", "Elevaciones Laterales en Polea", 
+        "Pájaros con Mancuerna (Posterior)", "Elevaciones Frontales con Disco", 
+        "Face Pulls en Polea"
+      ],
+      "Pierna (Anterior)": [
+        "Sentadilla Trasera con Barra", "Sentadilla Frontal", "Prensa de Piernas 45°", 
+        "Sentadilla Hack", "Extensiones de Cuádriceps", "Zancadas Caminando con Mancuernas"
+      ],
+      "Pierna (Posterior y Glúteo)": [
+        "Peso Muerto Convencional", "Peso Muerto Rumano con Mancuernas", 
+        "Curl Femoral Tumbado", "Curl Femoral Sentado", "Hip Thrust con Barra", 
+        "Patada de Glúteo en Polea"
+      ],
+      "Bíceps": [
+        "Curl con Barra EZ", "Curl de Bíceps Alterno con Mancuernas", 
+        "Curl Martillo", "Curl Concentrado", "Curl en Banco Predicador"
+      ],
+      "Tríceps": [
+        "Tríceps en Polea Alta con Cuerda", "Tríceps en Polea Alta con Barra Recta", 
+        "Press Francés con Barra EZ", "Extensiones Tras nuca con Mancuerna", 
+        "Patada de Tríceps en Polea"
+      ],
+      "Abdomen/Core": [
+        "Crunch Abdominal en Polea Alta", "Plancha Abdominal Estática", 
+        "Elevaciones de Piernas Colgado", "Giros Rusos con Balón Medicinal"
+      ],
+      "Cardio/Otros": [
+        "Sprint en Cinta de Correr", "Remo en Ergómetro", 
+        "Salto a la Comba", "Asault Bike"
+      ]
+    };
+
+    const DEFAULT_ROUTINES = {
+      "Empuje (Push)": [
+        "Press de Banca Plano con Barra", "Press Sentado con Mancuernas", 
+        "Aperturas con Mancuernas", "Elevaciones Laterales con Mancuerna", 
+        "Tríceps en Polea Alta con Cuerda"
+      ],
+      "Tracción (Pull)": [
+        "Dominadas Pronas", "Remo con Barra Pendlay", "Jalón al Pecho", 
+        "Pájaros con Mancuerna (Posterior)", "Curl con Barra EZ"
+      ],
+      "Pierna Completa": [
+        "Sentadilla Trasera con Barra", "Peso Muerto Rumano con Mancuernas", 
+        "Prensa de Piernas 45°", "Curl Femoral Tumbado", "Hip Thrust con Barra"
+      ],
+      "Full Body": [
+        "Sentadilla Trasera con Barra", "Press de Banca Plano con Barra", 
+        "Remo con Barra Pendlay", "Press Militar con Barra", "Plancha Abdominal Estática"
+      ],
+      "Brazos Hombro (Estética)": [
+        "Press Sentado con Mancuernas", "Elevaciones Laterales en Polea", 
+        "Curl de Bíceps Alterno con Mancuernas", "Curl Martillo", 
+        "Press Francés con Barra EZ", "Tríceps en Polea Alta con Cuerda"
+      ]
+    };
+
+    const ALL_EXERCISES = [...new Set(Object.values(EXERCISE_DATABASE).flat())].sort();
+
+    let db;
+    let currentActiveTab = 'entrenar';
+    let activeWorkout = null;
+    let timerInterval = null;
+    let timerSecondsLeft = 0;
+
+    // Inicialización Base de Datos
+    const dbRequest = indexedDB.open("NacorGymEnterpriseDB", 1);
+    dbRequest.onupgradeneeded = (e) => {
+      const activeDb = e.target.result;
+      activeDb.createObjectStore("workouts", { keyPath: "id", autoIncrement: true });
+      activeDb.createObjectStore("exercises_history", { keyPath: "id", autoIncrement: true });
+    };
+    dbRequest.onsuccess = (e) => {
+      db = e.target.result;
+      switchTab('entrenar');
+    };
+
+    function switchTab(tab) {
+      currentActiveTab = tab;
+      ['entrenar', 'ejercicios', 'stats'].forEach(t => {
+        const btn = document.getElementById(`nav-${t}`);
+        if (t === tab) {
+          btn.classList.add('text-brand');
+          btn.classList.remove('text-zinc-500');
+        } else {
+          btn.classList.remove('text-brand');
+          btn.classList.add('text-zinc-500');
+        }
+      });
+      renderTabContent();
+    }
+
+    function renderTabContent() {
+      const container = document.getElementById('app-content');
+      if (currentActiveTab === 'entrenar') {
+        if (activeWorkout) {
+          renderActiveWorkout(container);
+        } else {
+          renderWorkoutSelection(container);
+        }
+      } else if (currentActiveTab === 'ejercicios') {
+        renderExerciseList(container);
+      } else if (currentActiveTab === 'stats') {
+        renderStats(container);
+      }
+    }
+
+    // --- SELECCIÓN DE ENTRENAMIENTO ---
+    function renderWorkoutSelection(container) {
+      let html = `<h2 class="text-2xl font-extrabold mb-1 tracking-tight">Elegir Rutina</h2>
+                  <p class="text-zinc-400 text-sm mb-6">Selecciona uno de los planes de entrenamiento corporativos:</p>
+                  <div class="space-y-3">`;
+
+      for (const [name, exercises] of Object.entries(DEFAULT_ROUTINES)) {
+        html += `
+          <div onclick="startWorkout('${name}')" class="bg-zinc-900 border border-zinc-800/80 p-4 rounded-2xl active:scale-[0.98] transition-all cursor-pointer shadow-md">
+            <div class="flex justify-between items-center mb-1">
+              <h3 class="font-bold text-sm text-white">${name}</h3>
+              <span class="text-[9px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full">${exercises.length} Ejercicios</span>
+            </div>
+            <p class="text-[10px] text-zinc-500 leading-relaxed">${exercises.slice(0, 4).join('  •  ')}${exercises.length > 4 ? '...' : ''}</p>
+          </div>
+        `;
+      }
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // --- REGISTRO DEL ENTRENAMIENTO ACTIVO ---
+    async function startWorkout(routineName) {
+      const exercises = DEFAULT_ROUTINES[routineName];
+      activeWorkout = {
+        routine: routineName,
+        date: new Date().toISOString(),
+        exercises: []
+      };
+
+      for (let ex of exercises) {
+        const lastSession = await getLastExerciseSession(ex);
+        activeWorkout.exercises.push({
+          name: ex,
+          sets: lastSession ? lastSession.sets.map(s => ({ peso: s.peso, reps: s.reps, note: s.note || '', done: false })) : [{ peso: '', reps: '', note: '', done: false }]
+        });
+      }
+      renderTabContent();
+    }
+
+    function addSet(exIdx) {
+      const sets = activeWorkout.exercises[exIdx].sets;
+      const lastSet = sets[sets.length - 1] || { peso: '', reps: '', note: '' };
+      sets.push({ peso: lastSet.peso, reps: lastSet.reps, note: '', done: false });
+      renderTabContent();
+    }
+
+    function deleteSet(exIdx, setIdx) {
+      if (activeWorkout.exercises[exIdx].sets.length > 1) {
+        activeWorkout.exercises[exIdx].sets.splice(setIdx, 1);
+        renderTabContent();
+      }
+    }
+
+    function toggleSetDone(exIdx, setIdx) {
+      const set = activeWorkout.exercises[exIdx].sets[setIdx];
+      const pesoVal = document.getElementById(`peso-${exIdx}-${setIdx}`).value;
+      const repsVal = document.getElementById(`reps-${exIdx}-${setIdx}`).value;
+      const noteVal = document.getElementById(`note-${exIdx}-${setIdx}`).value;
+
+      set.peso = pesoVal !== '' ? parseFloat(pesoVal) : '';
+      set.reps = repsVal !== '' ? parseInt(repsVal) : '';
+      set.note = noteVal;
+      set.done = !set.done;
+
+      if (set.done) {
+        startTimer(90); // Activa descanso por defecto de 90 segundos
+      }
+      renderTabContent();
+    }
+
+    function toggleNoteInput(exIdx, setIdx) {
+      const input = document.getElementById(`note-container-${exIdx}-${setIdx}`);
+      input.classList.toggle('hidden');
+    }
+
+    function renderActiveWorkout(container) {
+      let html = `
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <span class="text-xs font-bold text-brand uppercase tracking-wider">Workout en Curso</span>
+            <h2 class="text-xl font-extrabold tracking-tight">${activeWorkout.routine}</h2>
+          </div>
+          <button onclick="finishWorkout()" class="bg-brand text-zinc-950 px-4 py-2 rounded-xl text-xs font-extrabold active:scale-95 transition-transform shadow-lg shadow-brand/10">Guardar</button>
+        </div>
+      `;
+
+      activeWorkout.exercises.forEach((ex, exIdx) => {
+        let setsHTML = '';
+        ex.sets.forEach((set, setIdx) => {
+          setsHTML += `
+            <div class="mb-3 transition-all">
+              <div class="flex items-center justify-between gap-1.5 ${set.done ? 'opacity-40' : ''}">
+                <span class="w-10 text-[9px] font-extrabold text-zinc-500 uppercase">S${setIdx + 1}</span>
+                
+                <div class="flex items-center bg-zinc-950 border border-zinc-800 rounded-xl px-2 w-24">
+                  <input type="number" id="peso-${exIdx}-${setIdx}" value="${set.peso}" placeholder="-- " class="bg-transparent w-full text-center py-1.5 text-white font-bold text-sm focus:outline-none" ${set.done ? 'disabled' : ''}>
+                  <span class="text-[9px] text-zinc-600 font-bold">KG</span>
+                </div>
+
+                <div class="flex items-center bg-zinc-950 border border-zinc-800 rounded-xl px-2 w-20">
+                  <input type="number" id="reps-${exIdx}-${setIdx}" value="${set.reps}" placeholder="--" class="bg-transparent w-full text-center py-1.5 text-white font-bold text-sm focus:outline-none" ${set.done ? 'disabled' : ''}>
+                  <span class="text-[9px] text-zinc-600 font-bold">REPS</span>
+                </div>
+
+                <div class="flex items-center gap-1">
+                  <button onclick="toggleNoteInput(${exIdx}, ${setIdx})" class="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-850 flex items-center justify-center text-xs text-zinc-400 active:scale-90" title="Añadir Nota">✍️</button>
+                  <button onclick="toggleSetDone(${exIdx}, ${setIdx})" class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors active:scale-90 ${set.done ? 'bg-brand text-zinc-950 font-bold' : 'bg-zinc-800 text-zinc-300'}">✓</button>
+                  <button onclick="deleteSet(${exIdx}, ${setIdx})" class="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-red-500 flex items-center justify-center active:scale-90">✕</button>
+                </div>
+              </div>
+              
+              <!-- CAMPO DE NOTAS RECTIVO POR SERIE -->
+              <div id="note-container-${exIdx}-${setIdx}" class="${set.note ? '' : 'hidden'} mt-1.5 px-10">
+                <input type="text" id="note-${exIdx}-${setIdx}" value="${set.note}" placeholder="Nota de esta serie (ej: RPE 9)..." class="w-full bg-zinc-950 border border-zinc-850 rounded-lg py-1 px-2.5 text-[11px] text-zinc-400 focus:outline-none focus:border-brand">
+              </div>
+            </div>
+          `;
+        });
+
+        html += `
+          <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-4">
+            <h3 class="font-extrabold text-xs text-zinc-300 mb-3">${ex.name}</h3>
+            <div class="mb-3">${setsHTML}</div>
+            <button onclick="addSet(${exIdx})" class="w-full py-1.5 bg-zinc-950 border border-zinc-850 rounded-xl text-[10px] font-bold text-zinc-400 hover:text-brand transition-colors">+ Serie</button>
+          </div>
+        `;
+      });
+
+      html += `<button onclick="cancelWorkout()" class="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold mt-6 active:scale-95 transition-transform">Descartar Entrenamiento</button>`;
+      container.innerHTML = html;
+    }
+
+    async function finishWorkout() {
+      const workoutToSave = {
+        routine: activeWorkout.routine,
+        date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
+        rawDate: new Date(),
+        exercises: activeWorkout.exercises.map(ex => ({
+          name: ex.name,
+          sets: ex.sets.filter(s => s.done).map(s => ({ peso: s.peso, reps: s.reps, note: s.note }))
+        })).filter(ex => ex.sets.length > 0)
+      };
+
+      if (workoutToSave.exercises.length === 0) {
+        alert("Comenta al menos una serie (✓).");
+        return;
+      }
+
+      const transaction = db.transaction(["workouts", "exercises_history"], "readwrite");
+      transaction.objectStore("workouts").add(workoutToSave);
+
+      workoutToSave.exercises.forEach(ex => {
+        transaction.objectStore("exercises_history").add({
+          exerciseName: ex.name,
+          date: workoutToSave.date,
+          rawDate: workoutToSave.rawDate,
+          sets: ex.sets
+        });
+      });
+
+      activeWorkout = null;
+      stopTimer();
+      alert("¡Entrenamiento guardado con éxito!");
+      switchTab('entrenar');
+    }
+
+    function cancelWorkout() {
+      if (confirm("¿Descartar este entrenamiento?")) {
+        activeWorkout = null;
+        stopTimer();
+        switchTab('entrenar');
+      }
+    }
+
+    function getLastExerciseSession(exerciseName) {
+      return new Promise((resolve) => {
+        const transaction = db.transaction(["exercises_history"], "readonly");
+        const store = transaction.objectStore("exercises_history");
+        let result = null;
+
+        store.openCursor(null, "prev").onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            if (cursor.value.exerciseName === exerciseName) {
+              result = cursor.value;
+              resolve(result);
+              return;
+            }
+            cursor.continue();
+          } else {
+            resolve(null);
+          }
+        };
+      });
+    }
+
+    // --- TEMPORIZADOR AVANZADO ---
+    function startTimer(seconds) {
+      clearInterval(timerInterval);
+      timerSecondsLeft = seconds;
+      const banner = document.getElementById('timer-banner');
+      banner.classList.remove('hidden');
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        timerSecondsLeft--;
+        updateTimerDisplay();
+        if (timerSecondsLeft <= 0) {
+          clearInterval(timerInterval);
+          banner.classList.add('hidden');
+        }
+      }, 1000);
+    }
+
+    function adjustTimer(amount) {
+      timerSecondsLeft += amount;
+      if (timerSecondsLeft < 0) timerSecondsLeft = 0;
+      updateTimerDisplay();
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      document.getElementById('timer-banner').classList.add('hidden');
+    }
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(timerSecondsLeft / 60).toString().padStart(2, '0');
+      const secs = (timerSecondsLeft % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').textContent = `${mins}:${secs}`;
+    }
+
+    // --- CALCULADORA DE DISCOS (MODAL) ---
+    function openPlateCalculator() {
+      document.getElementById('plate-modal').classList.remove('hidden');
+    }
+
+    function closePlateCalculator() {
+      document.getElementById('plate-modal').classList.add('hidden');
+    }
+
+    function calculatePlates() {
+      const targetInput = document.getElementById('calc-weight-input').value;
+      const output = document.getElementById('plates-output');
+      if (!targetInput) return;
+
+      const totalWeight = parseFloat(targetInput);
+      const barWeight = 20; // Barra olímpica estándar de 20kg
+      const remainingWeight = totalWeight - barWeight;
+
+      if (remainingWeight < 0) {
+        output.innerHTML = `<span class="text-red-400 font-bold">El peso objetivo debe ser mayor que la barra (20 Kg).</span>`;
+        return;
+      }
+
+      const weightsOnOneSide = remainingWeight / 2;
+      const availablePlates = [25, 20, 15, 10, 5, 2.5, 1.25];
+      let leftToCalculate = weightsOnOneSide;
+      let plateCounts = {};
+
+      availablePlates.forEach(plate => {
+        const count = Math.floor(leftToCalculate / plate);
+        if (count > 0) {
+          plateCounts[plate] = count;
+          leftToCalculate -= count * plate;
+        }
+      });
+
+      let resultsHTML = `<span class="block text-[10px] uppercase font-bold text-zinc-500 mb-2">Discos por cada lado de la barra:</span>`;
+      for (const [plate, count] of Object.entries(plateCounts)) {
+        resultsHTML += `
+          <div class="flex justify-between py-1 border-b border-zinc-900">
+            <span class="font-bold text-zinc-300">Disco de ${plate} kg</span>
+            <span class="text-brand font-extrabold">x ${count} ud.</span>
+          </div>
+        `;
+      }
+
+      if (leftToCalculate > 0) {
+        resultsHTML += `<p class="text-[10px] text-zinc-500 mt-2">Diferencia no cubierta: ${leftToCalculate * 2} kg.</p>`;
+      }
+
+      output.innerHTML = resultsHTML;
+    }
+
+    // --- LISTADO DE EJERCICIOS CON BUSCADOR ---
+    function renderExerciseList(container) {
+      container.innerHTML = `
+        <h2 class="text-2xl font-extrabold mb-1 tracking-tight">Ejercicios</h2>
+        <p class="text-zinc-400 text-xs mb-4">Biblioteca oficial con más de 50 ejercicios.</p>
+        <div class="relative mb-4">
+          <input type="text" id="search-input" onkeyup="filterExercises()" placeholder="Buscar ejercicio..." class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 pl-10 text-xs text-white focus:outline-none focus:border-brand">
+          <svg class="w-4 h-4 absolute left-3 top-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+        <div id="exercises-container" class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar"></div>
+      `;
+
+      const listContainer = document.getElementById('exercises-container');
+      ALL_EXERCISES.forEach(exName => {
+        const div = document.createElement('div');
+        div.className = "exercise-item bg-zinc-900 border border-zinc-800/80 px-4 py-3 rounded-xl flex justify-between items-center cursor-pointer active:scale-[0.99] transition-transform";
+        div.onclick = () => renderExerciseHistory(exName);
+        div.innerHTML = `
+          <span class="font-bold text-xs text-zinc-200">${exName}</span>
+          <span class="text-brand text-xs">→</span>
+        `;
+        listContainer.appendChild(div);
+      });
+    }
+
+    function filterExercises() {
+      const input = document.getElementById('search-input').value.toLowerCase();
+      document.querySelectorAll('.exercise-item').forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(input) ? 'flex' : 'none';
+      });
+    }
+
+    // --- DETALLE DE EJERCICIO + HISTORIAL ---
+    async function renderExerciseHistory(exerciseName) {
+      const container = document.getElementById('app-content');
+      const rawHistory = await getExerciseHistory(exerciseName);
+      const history = rawHistory.reverse();
+
+      let recordMax = 0;
+      let totalVolume = 0;
+      let maxReps = 0;
+      let listHTML = '';
+      const chartLabels = [];
+      const chartData = [];
+
+      history.forEach((session) => {
+        let maxWeight = 0;
+        let sessionHTML = `
+          <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl mb-2">
+            <div class="flex justify-between items-center mb-2 pb-1 border-b border-zinc-800/50">
+              <span class="text-[9px] font-bold text-zinc-400">${session.date}</span>
+            </div>
+        `;
+
+        session.sets.forEach((set, sIdx) => {
+          const weight = parseFloat(set.peso) || 0;
+          const reps = parseInt(set.reps) || 0;
+          if (weight > recordMax) recordMax = weight;
+          if (weight > maxWeight) maxWeight = weight;
+          if (reps > maxReps) maxReps = reps;
+          totalVolume += weight * reps;
+
+          sessionHTML += `
+            <div class="flex flex-col py-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-zinc-500">Serie ${sIdx + 1}</span>
+                <span class="font-semibold text-zinc-200">${set.peso} kg × ${set.reps} reps</span>
+              </div>
+              ${set.note ? `<p class="text-[10px] text-brand italic mt-0.5">Nota: ${set.note}</p>` : ''}
+            </div>
+          `;
+        });
+
+        sessionHTML += `</div>`;
+        listHTML += sessionHTML;
+
+        chartLabels.push(session.date);
+        chartData.push(maxWeight);
+      });
+
+      // Fórmula de Epley para 1RM ($1RM = Peso * (1 + reps/30)$)
+      const calculated1RM = recordMax > 0 && maxReps > 0 ? Math.round(recordMax * (1 + maxReps / 30)) : 0;
+
+      container.innerHTML = `
+        <button onclick="switchTab('ejercicios')" class="text-brand text-xs font-bold mb-4 flex items-center gap-1">← Volver</button>
+        <h2 class="text-xl font-extrabold mb-3">${exerciseName}</h2>
+        
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-center">
+            <span class="text-[8px] text-zinc-400 font-bold block mb-0.5 uppercase">Máximo</span>
+            <span class="text-base font-extrabold text-brand">${recordMax} Kg</span>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-center">
+            <span class="text-[8px] text-zinc-400 font-bold block mb-0.5 uppercase">1RM</span>
+            <span class="text-base font-extrabold text-white">${calculated1RM} Kg</span>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-center">
+            <span class="text-[8px] text-zinc-400 font-bold block mb-0.5 uppercase">Total Vol.</span>
+            <span class="text-base font-extrabold text-zinc-300">${totalVolume} Kg</span>
+          </div>
+        </div>
+
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl mb-4">
+          <canvas id="exerciseChart" class="w-full"></canvas>
+        </div>
+
+        <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Registros Históricos</h3>
+        ${listHTML || '<p class="text-xs text-zinc-500">Aún no hay ningún entrenamiento registrado.</p>'}
+      `;
+
+      if (chartData.length > 0) {
+        const ctx = document.getElementById('exerciseChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: chartLabels.slice(-5),
+            datasets: [{
+              data: chartData.slice(-5),
+              borderColor: '#a3e635',
+              backgroundColor: 'rgba(163, 230, 53, 0.05)',
+              tension: 0.3,
+              fill: true,
+              pointRadius: 3
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { grid: { color: '#27272a' }, ticks: { color: '#71717a', font: { size: 9 } } },
+              x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 9 } } }
+            }
+          }
+        });
+      }
+    }
+
+    function getExerciseHistory(exerciseName) {
+      return new Promise((resolve) => {
+        const transaction = db.transaction(["exercises_history"], "readonly");
+        const store = transaction.objectStore("exercises_history");
+        const results = [];
+
+        store.openCursor().onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            if (cursor.value.exerciseName === exerciseName) {
+              results.push(cursor.value);
+            }
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
+        };
+      });
+    }
+
+    // --- ESTADÍSTICAS GLOBALES DE NIVEL EMPRESARIAL ---
+    async function renderStats(container) {
+      const workouts = await getAllWorkouts();
+      const count = workouts.length;
+
+      let latestHTML = '';
+      if (count > 0) {
+        const last = workouts[count - 1];
+        latestHTML = `
+          <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl mb-4 shadow-md">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-[9px] font-bold text-brand uppercase tracking-wider">Última Sesión</span>
+              <button onclick="copyToClipboard('${encodeURIComponent(JSON.stringify(last))}')" class="text-[10px] bg-zinc-950 border border-zinc-850 text-zinc-300 px-2.5 py-1.5 rounded-lg">Copiar Reporte</button>
+            </div>
+            <h4 class="font-bold text-white text-sm">${last.routine}</h4>
+            <p class="text-[10px] text-zinc-500 mb-2">${last.date}</p>
+            <div class="space-y-1">
+              ${last.exercises.map(ex => `<div class="text-xs text-zinc-400">• ${ex.name} (${ex.sets.length} series)</div>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <h2 class="text-2xl font-extrabold mb-1 tracking-tight">Reporte Corporativo</h2>
+        <p class="text-zinc-400 text-xs mb-5">Análisis avanzado de tus sesiones de entrenamiento.</p>
+        
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+            <span class="text-[10px] text-zinc-400 font-bold block mb-1 uppercase">Total Entrenos</span>
+            <span class="text-3xl font-extrabold text-white">${count}</span>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+            <span class="text-[10px] text-zinc-400 font-bold block mb-1 uppercase">Local DB</span>
+            <span class="text-2xl font-extrabold text-brand">Estable</span>
+          </div>
+        </div>
+
+        ${latestHTML}
+      `;
+    }
+
+    function getAllWorkouts() {
+      return new Promise((resolve) => {
+        const transaction = db.transaction(["workouts"], "readonly");
+        const store = transaction.objectStore("workouts");
+        const results = [];
+        store.openCursor().onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            results.push(cursor.value);
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
+        };
+      });
+    }
+
+    function copyToClipboard(escapedJson) {
+      const workout = JSON.parse(decodeURIComponent(escapedJson));
+      let text = `💪 NacorGym Enterprise - ${workout.routine} (${workout.date})\n\n`;
+      workout.exercises.forEach(ex => {
+        text += `• ${ex.name}:\n`;
+        ex.sets.forEach((set, sIdx) => {
+          text += `  S${sIdx + 1}: ${set.peso} kg x ${set.reps} r ${set.note ? `[${set.note}]` : ''}\n`;
+        });
+        text += `\n`;
+      });
+      text += `Enviado desde mi panel corporativo de NacorGym.`;
+      navigator.clipboard.writeText(text).then(() => alert("¡Reporte copiado!"));
+    }
+
+    // --- COPIAS DE SEGURIDAD ---
+    async function exportData() {
+      const workouts = await getAllWorkouts();
+      const transaction = db.transaction(["exercises_history"], "readonly");
+      const store = transaction.objectStore("exercises_history");
+      const history = [];
+
+      store.openCursor().onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          history.push(cursor.value);
+          cursor.continue();
+        } else {
+          const backup = { workouts, history };
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
+          const dlAnchor = document.createElement('a');
+          dlAnchor.setAttribute("href", dataStr);
+          dlAnchor.setAttribute("download", `NacorGym_Corporate_Backup.json`);
+          dlAnchor.click();
+        }
+      };
+    }
+
+    function triggerImport() { document.getElementById('importFile').click(); }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(evt) {
+        try {
+          const backup = JSON.parse(evt.target.result);
+          const transaction = db.transaction(["workouts", "exercises_history"], "readwrite");
+          transaction.objectStore("workouts").clear();
+          transaction.objectStore("exercises_history").clear();
+
+          backup.workouts.forEach(w => transaction.objectStore("workouts").add(w));
+          backup.history.forEach(h => transaction.objectStore("exercises_history").add(h));
+
+          alert("¡Copia de seguridad importada con éxito!");
+          renderTabContent();
+        } catch { alert("Error: El formato de backup no es válido."); }
+      };
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
